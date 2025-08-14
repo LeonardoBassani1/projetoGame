@@ -1,56 +1,41 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys
 
 import pygame
-from pygame.font import Font
-from pygame.rect import Rect
-from pygame.surface import Surface
-from code.Const import WIN_WIDTH, C_ORANGE, C_YELLOW, C_WHITE, MENU_OPTION
-from code.Const import WIN_WIDTH
+
+from code.Const import WIN_WIDTH, WIN_HEIGHT, MENU_OPTION
+from code.Level import Level
+from code.Menu import Menu
+from code.Score import Score
 
 
-class Menu:
-    def __init__(self, window):
-        self.window = window
-        self.surf = pygame.image.load('./asset/MenuBg.png').convert_alpha()
-        self.rect = self.surf.get_rect(left=0, top=0)
+class Game:
+    def __init__(self):
+        pygame.init()
+        self.window = pygame.display.set_mode(size=(WIN_WIDTH, WIN_HEIGHT))
 
     def run(self):
-        menu_option = 0
-        pygame.mixer_music.load('./asset/Menu.mp3')
-        pygame.mixer_music.play(-1)
         while True:
-            # DRAW IMAGES
-            self.window.blit(source=self.surf, dest=self.rect)
-            self.menu_text(50, "Mountain", C_ORANGE, ((WIN_WIDTH / 2), 70))
-            self.menu_text(50, "Shooter", C_ORANGE, ((WIN_WIDTH / 2), 120))
+            score = Score(self.window)
+            menu = Menu(self.window)
+            menu_return = menu.run()
 
-            for i in range(len(MENU_OPTION)):
-                if i == menu_option:
-                    self.menu_text(20, MENU_OPTION[i], C_YELLOW, ((WIN_WIDTH / 2), 200 + 25 * i))
-                else:
-                    self.menu_text(20, MENU_OPTION[i], C_WHITE, ((WIN_WIDTH / 2), 200 + 25 * i))
-            pygame.display.flip()
+            if menu_return in [MENU_OPTION[0], MENU_OPTION[1], MENU_OPTION[2]]:
+                player_score = [0, 0]  # [Player1, Player2]
+                level = Level(self.window, 'Level1', menu_return, player_score)
+                level_return = level.run(player_score)
+                if level_return:
+                    level = Level(self.window, 'Level2', menu_return, player_score)
+                    level_return = level.run(player_score)
+                    if level_return:
+                        score.save(menu_return, player_score)
 
-            # Check for all events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()  # Close Window
-                    quit()  # end pygame
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_DOWN:  # DOWN KEY
-                        if menu_option < len(MENU_OPTION) - 1:
-                            menu_option += 1
-                        else:
-                            menu_option = 0
-                    if event.key == pygame.K_UP:  # UP KEY
-                        if menu_option > 0:
-                            menu_option -= 1
-                        else:
-                            menu_option = len(MENU_OPTION) - 1
-                    if event.key == pygame.K_RETURN:  # ENTER
-                        return MENU_OPTION[menu_option]
-
-    def menu_text(self, text_size: int, text: str, text_color: tuple, text_center_pos: tuple):
-        text_font: Font = pygame.font.SysFont(name="Lucida Sans Typewriter", size=text_size)
-        text_surf: Surface = text_font.render(text, True, text_color).convert_alpha()
-        text_rect: Rect = text_surf.get_rect(center=text_center_pos)
-        self.window.blit(source=text_surf, dest=text_rect)
+            elif menu_return == MENU_OPTION[3]:
+                score.show()
+            elif menu_return == MENU_OPTION[4]:
+                pygame.quit()  # Close Window
+                quit()  # end pygame
+            else:
+                pygame.quit()
+                sys.exit()

@@ -1,67 +1,41 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import random
-import pygame
 import sys
 
-from code.Const import MENU_OPTION, EVENT_ENEMY, SPAWN_TIME
-from code.EntityFactory import EntityFactory
+import pygame
 
-# Constantes globais (ajusta se necessário)
-COLOR_WHITE = (255, 255, 255)
-WIN_HEIGHT = 480  # coloca a altura real da tua janela aqui
-
-class Level:
-    def __init__(self, window, name, game_mode):
-        self.timeout = 20000  # 20 segundos
-        self.window = window
-        self.name = name
-        self.game_mode = game_mode
-        self.timeout = 60000  # tempo de exemplo em milissegundos
-        self.entity_list = []
-        self.entity_list.extend(EntityFactory.get_entity('Level1Bg'))
-        self.entity_list.append(EntityFactory.get_entity('Player1'))
-        if game_mode in [MENU_OPTION[1],MENU_OPTION[2]]:
-            self.entity_list.append(EntityFactory.get_entity('Player2'))
-        pygame.time.set_timer(EVENT_ENEMY, SPAWN_TIME)
+from code.Const import WIN_WIDTH, WIN_HEIGHT, MENU_OPTION
+from code.Level import Level
+from code.Menu import Menu
+from code.Score import Score
 
 
-
-        MENU_OPTION
+class Game:
+    def __init__(self):
+        pygame.init()
+        self.window = pygame.display.set_mode(size=(WIN_WIDTH, WIN_HEIGHT))
 
     def run(self):
-        pygame.mixer_music.load(f'./asset/{self.name}.mp3')
-        pygame.mixer_music.play(-1)
-        clock = pygame.time.Clock()
-
         while True:
-            clock.tick(60)
-            for ent in self.entity_list:
-                self.window.blit(source=ent.surf, dest=ent.rect)
-                ent.move()
+            score = Score(self.window)
+            menu = Menu(self.window)
+            menu_return = menu.run()
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == EVENT_ENEMY:
-                    if event.type == EVENT_ENEMY:
-                        choice = random.choice(['Enemy1', 'Enemy2'])
-                        self.entity_list.append(EntityFactory.get_entity(choice))
-                    self.entity_list.append(EntityFactory.get_entity('Enemy1'))
+            if menu_return in [MENU_OPTION[0], MENU_OPTION[1], MENU_OPTION[2]]:
+                player_score = [0, 0]  # [Player1, Player2]
+                level = Level(self.window, 'Level1', menu_return, player_score)
+                level_return = level.run(player_score)
+                if level_return:
+                    level = Level(self.window, 'Level2', menu_return, player_score)
+                    level_return = level.run(player_score)
+                    if level_return:
+                        score.save(menu_return, player_score)
 
-            # Impressão dos textos na tela
-            self.level_text(text_size=14, text=f'{self.name} - Timeout: {self.timeout / 1000 :.1f}s',
-                            text_color=COLOR_WHITE, text_pos=(10, 5))
-            self.level_text(text_size=14, text=f'FPS: {clock.get_fps():.0f}', text_color=COLOR_WHITE,
-                            text_pos=(10, WIN_HEIGHT - 35))
-            self.level_text(text_size=14, text=f'Entidades: {len(self.entity_list)}', text_color=COLOR_WHITE,
-                            text_pos=(10, WIN_HEIGHT - 20))
-
-            pygame.display.flip()
-
-    def level_text(self, text_size: int, text: str, text_color: tuple, text_pos: tuple):
-        text_font = pygame.font.SysFont(name="Lucida Sans Typewriter", size=text_size)
-        text_surf = text_font.render(text, True, text_color).convert_alpha()
-        text_rect = text_surf.get_rect(left=text_pos[0], top=text_pos[1])
-        self.window.blit(source=text_surf, dest=text_rect)
+            elif menu_return == MENU_OPTION[3]:
+                score.show()
+            elif menu_return == MENU_OPTION[4]:
+                pygame.quit()  # Close Window
+                quit()  # end pygame
+            else:
+                pygame.quit()
+                sys.exit()
